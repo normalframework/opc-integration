@@ -1,0 +1,35 @@
+{
+  "name": "opc",
+  "description": "OPC Driver for Normal Framework",
+  "layer": {
+    "name": "opc",
+    "components": [
+      "path",
+      "browse_name",
+      "namespace",
+      "identifier_type",
+      "identifier",
+      "id_string"
+    ],
+    "component_types": ["PATH", "TAG", "TEXT", "TEXT", "TEXT", "TEXT"],
+    "indexed": true,
+    "default_display_attrs": [
+      "path",
+      "browse_name",
+      "namespace",
+      "identifier_type",
+      "identifier",
+      "id_string"
+    ],
+    "default_grouping_attrs": ["path"]
+  },
+  "options": [
+    { "name": "endpoint", "value": { "string": "" }, "defaultValue": {"string": "opc.tcp://opcuademo.sterfive.com:26543"} },
+    {
+      "name": "targetPaths",
+      "description": "Browse paths to target (comma delimited). If empty, will index entire server.",
+      "defaultValue": { "string": "/Objects/DeviceSet/CoffeeMachine" },
+      "value": {"string": ""}
+    }
+  ]
+}

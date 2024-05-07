@@ -1,0 +1,6 @@
+{
+    "hook": {
+        "entryPoint": "import.js",
+        "name": "Import OPC Objects"
+      }
+}
