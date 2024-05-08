@@ -24,12 +24,18 @@
     "default_grouping_attrs": ["path"]
   },
   "options": [
-    { "name": "endpoint", "value": { "string": "" }, "defaultValue": {"string": "opc.tcp://opcuademo.sterfive.com:26543"} },
+    {
+      "name": "endpoint",
+      "optionType": 4,
+      "value": { "string": "" },
+      "defaultValue": { "string": "opc.tcp://opcuademo.sterfive.com:26543" }
+    },
     {
       "name": "targetPaths",
+      "optionType": 4,
       "description": "Browse paths to target (comma delimited). If empty, will index entire server.",
       "defaultValue": { "string": "/Objects/DeviceSet/CoffeeMachine" },
-      "value": {"string": ""}
+      "value": { "string": "" }
     }
   ]
 }
