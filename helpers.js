@@ -1,11 +1,9 @@
 const NormalSdk = require("@normalframework/applications-sdk");
 
-
 /**
  * @type {NormalSdk.IRunParams}
  */
 let _sdk;
-
 
 /**
  * @param {DataValue} value
@@ -15,7 +13,7 @@ let _sdk;
  * @returns {{result: 'error', message: String} | {result: 'success', value: NormalSdk.WritePointValue & {ts: string}}}
  * 
  */
-export const tryParseValue = (value) => {
+const tryParseValue = (value) => {
 
     let parsedValue = undefined;
 
@@ -68,7 +66,7 @@ export const tryParseValue = (value) => {
     }
 }
 
-export const isInTargetPath = (targetPath, path) => {
+const isInTargetPath = (targetPath, path) => {
     const targetPathParts = targetPath.split("/");
     const pathParts = path.split("/").slice(0, targetPathParts.length)
     for (let i = 0; i < pathParts.length; i++) {
@@ -79,7 +77,7 @@ export const isInTargetPath = (targetPath, path) => {
     return true;
 }
 
-export const upsertPoint = async () => {
+const upsertPoint = async () => {
     const sdk = getSdk();
 
     const request = {
@@ -89,7 +87,7 @@ export const upsertPoint = async () => {
     return await sdk.http.post("/api/v1/point/points", request);
 }
 
-export const addPointValue = async (pointValue) => {
+const addPointValue = async (pointValue) => {
     const sdk = getSdk();
     return sdk.http.post("api/v1/point/data", pointValue);
 }
@@ -100,13 +98,15 @@ export const addPointValue = async (pointValue) => {
  * Invoke hook function
  * @param {NormalSdk.IRunParams} sdk
  */
-export const initialize = async (sdk) => {
+const initialize = async (sdk) => {
     _sdk = sdk;
 }
 
-export const getSdk = () => {
+const getSdk = () => {
     if (_sdk === undefined) {
         throw new Error("SDK not initialized");
     }
     return _sdk;
 }
+
+module.exports = { getSdk, tryParseValue, isInTargetPath, upsertPoint, addPointValue, initialize };

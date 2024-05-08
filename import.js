@@ -1,7 +1,7 @@
 const { OPCUAClient, ClientSession, NodeClass, AttributeIds } = require("node-opcua");
 const NormalSdk = require("@normalframework/applications-sdk");
 const { v5: uuidv5 } = require("uuid");
-const { isInTargetPath, tryParseValue, initialize, getSdk, upsertPoint, addPointValue } = require("./ocp-helpers");
+const { isInTargetPath, tryParseValue, initialize, getSdk, upsertPoint, addPointValue } = require("./helpers");
 
 const OCP_POINT_NAMESPACE = "068a0ecf-aa20-447e-9467-2f705f066d6c";
 const targetClasses = [NodeClass.Object, NodeClass.Variable];
