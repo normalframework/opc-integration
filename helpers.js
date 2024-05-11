@@ -1,4 +1,5 @@
 const NormalSdk = require("@normalframework/applications-sdk");
+const { DataType } = require("node-opcua");
 
 /**
  * @type {NormalSdk.IRunParams}
@@ -28,35 +29,41 @@ const tryParseValue = (value) => {
                     boolean: value.value.value,
                     ts: value.serverTimestamp,
                 }
+                break;
             case DataType.Double:
                 parsedValue = {
                     double: value.value.value,
                     ts: value.serverTimestamp,
                 }
+                break;
             case DataType.Float:
                 parsedValue = {
                     double: value.value.value,
                     ts: value.serverTimestamp,
                 }
+                break;
             case DataType.Int16:
                 parsedValue = {
                     real: value.value.value,
                     ts: value.serverTimestamp,
                 }
+                break;
             case DataType.Int32:
                 parsedValue = {
                     real: value.value.value,
                     ts: value.serverTimestamp,
                 }
+                break;
             case DataType.Int64:
                 parsedValue = {
                     real: value.value.value,
                     ts: value.serverTimestamp,
                 }
+                break;
         }
 
         if (parsedValue === undefined) {
-            return { result: 'error', message: "value type not supported" };
+            return { result: 'error', message: `value type ${DataType[value.value.dataType]} not supported` };
         }
 
         return {
@@ -77,19 +84,25 @@ const isInTargetPath = (targetPath, path) => {
     return true;
 }
 
-const upsertPoint = async () => {
+const upsertPoint = async (point) => {
     const sdk = getSdk();
 
     const request = {
         points: [point]
     };
-
     return await sdk.http.post("/api/v1/point/points", request);
 }
 
 const addPointValue = async (pointValue) => {
     const sdk = getSdk();
-    return sdk.http.post("api/v1/point/data", pointValue);
+    try {
+        console.log("staring add point value")
+        const res = await sdk.http.post("/api/v1/point/data", pointValue);
+        console.log("successfully added data")
+        return res;
+    } catch (e) {
+        console.log("error adding data", e)
+    }
 }
 
 

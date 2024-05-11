@@ -81,7 +81,7 @@ const getChildren = async (session, basePath = "", references, parentReference) 
             const units = await getUnits(innerReferences)
             const point = {
                 uuid: uuidv5(ref.reference.nodeId.displayText(), OCP_POINT_NAMESPACE),
-                layer: "opc",
+                layer: "hpl:opc:1",
                 attrs: {
                     path: currentPath,
                     browse_name: ref.reference.browseName.toString(),
