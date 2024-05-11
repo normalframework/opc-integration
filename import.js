@@ -28,7 +28,7 @@ module.exports = async ({ config, sdk }) => {
     });
 
     console.log("starting connect")
-    await client.connect(endpoint)
+    await client.connect(config.endpoint)
     console.log("connected");
     const session = await client.createSession();
 
@@ -44,9 +44,9 @@ module.exports = async ({ config, sdk }) => {
  */
 const getUnits = async (references) => {
     const unitsUri = "http://www.opcfoundation.org/UA/units/un/cefact";
-    for (const ref of references) { 
-        if(ref.value?.value?.namespaceUri === unitsUri) {
-            return ref.value.value.description.text
+    for (const ref of references) {
+        if (ref.value?.value?.value?.namespaceUri === unitsUri) {
+            return ref.value.value.value.description.text
         }
     }
 }
@@ -55,8 +55,8 @@ const getReferencesWithValue = async (nodeId, session) => {
     const result = [];
     const references = (await session.browse(nodeId)).references;
     for (const reference of references) {
-       const value = await session.read({ nodeId: reference.nodeId, attributeId: AttributeIds.Value }); 
-        result.push({reference, value})
+        const value = await session.read({ nodeId: reference.nodeId, attributeId: AttributeIds.Value });
+        result.push({ reference, value })
     }
     return result;
 }
@@ -71,7 +71,7 @@ const getReferencesWithValue = async (nodeId, session) => {
 const getChildren = async (session, basePath = "", references, parentReference) => {
     const sdk = getSdk()
 
-    for (const ref of references) { 
+    for (const ref of references) {
         const currentPath = `${basePath}/${ref.reference.displayName.text}`;
         // we don't want to import children of variables (they are all just value types e.g. engineering units)
         const shouldImport = isInTargetPaths(targetPaths, currentPath) && targetClasses.includes(ref.reference.nodeClass) && parentReference?.reference?.nodeClass !== NodeClass.Variable;
@@ -89,7 +89,7 @@ const getChildren = async (session, basePath = "", references, parentReference) 
                     identifier: ref.reference.nodeId.value.toString(),
                     namespace: ref.reference.nodeId.namespace.toString(),
                     id_string: ref.reference.nodeId.displayText(),
-                    display: units
+                    units_display: units,
                 },
             };
 
@@ -104,7 +104,7 @@ const getChildren = async (session, basePath = "", references, parentReference) 
                 }
             }
         };
-        if(shouldDiscover) {
+        if (shouldDiscover) {
             await getChildren(session, currentPath, innerReferences, ref);
         }
     }
