@@ -1,12 +1,12 @@
 const { OPCUAClient, ClientSession, NodeClass, AttributeIds, ReferenceDescription } = require("node-opcua");
 const NormalSdk = require("@normalframework/applications-sdk");
 const { v5: uuidv5 } = require("uuid");
-const { isInTargetPath, tryParseValue, initialize, getSdk, upsertPoint, addPointValue } = require("./helpers");
+const { isInTargetPaths, tryParseValue, initialize, getSdk, upsertPoint, addPointValue } = require("./helpers");
 
 const OCP_POINT_NAMESPACE = "068a0ecf-aa20-447e-9467-2f705f066d6c";
 const targetClasses = [NodeClass.Variable];
 const exploreClasses = [NodeClass.Object, NodeClass.Variable];
-targetPath = "";
+targetPaths = "";
 
 // endpoint = "opc.tcp://opcuademo.sterfive.com:26543";
 // targetPath = "RootFolder/Objects/DeviceSet/CoffeeMachine";
@@ -19,7 +19,7 @@ targetPath = "";
  */
 module.exports = async ({ config, sdk }) => {
     initialize(sdk);
-    targetPath = config.targetPath;
+    targetPaths = config.targetPaths;
 
 
     const client = OPCUAClient.create({
@@ -74,8 +74,8 @@ const getChildren = async (session, basePath = "", references, parentReference) 
     for (const ref of references) { 
         const currentPath = `${basePath}/${ref.reference.displayName.text}`;
         // we don't want to import children of variables (they are all just value types e.g. engineering units)
-        const shouldImport = isInTargetPath(targetPath, currentPath) && targetClasses.includes(ref.reference.nodeClass) && parentReference?.reference?.nodeClass !== NodeClass.Variable;
-        const shouldDiscover = isInTargetPath(targetPath, currentPath) && exploreClasses.includes(ref.reference.nodeClass);
+        const shouldImport = isInTargetPaths(targetPaths, currentPath) && targetClasses.includes(ref.reference.nodeClass) && parentReference?.reference?.nodeClass !== NodeClass.Variable;
+        const shouldDiscover = isInTargetPaths(targetPaths, currentPath) && exploreClasses.includes(ref.reference.nodeClass);
         const innerReferences = await getReferencesWithValue(ref.reference.nodeId, session)
         if (shouldImport) {
             const units = await getUnits(innerReferences)

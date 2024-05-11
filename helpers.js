@@ -84,6 +84,11 @@ const isInTargetPath = (targetPath, path) => {
     return true;
 }
 
+const isInTargetPaths = (targetPaths, path) => {
+    const paths = targetPaths.split(",");
+    return paths.some(p => isInTargetPath(p, path));
+}
+
 const upsertPoint = async (point) => {
     const sdk = getSdk();
 
@@ -122,4 +127,4 @@ const getSdk = () => {
     return _sdk;
 }
 
-module.exports = { getSdk, tryParseValue, isInTargetPath, upsertPoint, addPointValue, initialize };
+module.exports = { getSdk, tryParseValue, isInTargetPaths, upsertPoint, addPointValue, initialize };
