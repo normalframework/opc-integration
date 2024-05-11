@@ -2,26 +2,31 @@
   "name": "opc",
   "description": "OPC Driver for Normal Framework",
   "layer": {
-    "name": "opc",
+    "name": "hpl:opc:1",
+    "description": "OPC Protocal Layer",
+    "kind": "LAYER_BASE",
+    "indexed": true,
     "components": [
       "path",
       "browse_name",
       "namespace",
       "identifier_type",
       "identifier",
-      "id_string"
+      "id_string",
+      "display"
     ],
-    "component_types": ["PATH", "TAG", "TEXT", "TEXT", "TEXT", "TEXT"],
-    "indexed": true,
+    "component_options": ["PATH", "TAG", "TEXT", "TEXT", "TEXT", "TEXT", "TAG"],
+    "component_types": ["PATH", "TAG", "TEXT", "TEXT", "TEXT", "TEXT", "TAG"],
+    "suggested_extraction_attrs": [],
     "default_display_attrs": [
       "path",
       "browse_name",
       "namespace",
       "identifier_type",
       "identifier",
-      "id_string"
-    ],
-    "default_grouping_attrs": ["path"]
+      "id_string",
+      "display"
+    ]
   },
   "options": [
     {
