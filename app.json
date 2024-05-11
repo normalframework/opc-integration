@@ -13,11 +13,16 @@
       "identifier_type",
       "identifier",
       "id_string",
-      "display"
+      "display",
+      "test_one",
+      "test_two"
     ],
-    "component_options": ["PATH", "TAG", "TEXT", "TEXT", "TEXT", "TEXT", "TAG"],
-    "component_types": ["PATH", "TAG", "TEXT", "TEXT", "TEXT", "TEXT", "TAG"],
+    "component_options": ["PATH", "TAG", "TEXT", "TEXT", "TEXT", "TEXT", "TAG", "TEXT", "TEXT"],
+    "component_types": ["PATH", "TAG", "TEXT", "TEXT", "TEXT", "TEXT", "TAG", "TEXT", "TEXT"],
     "suggested_extraction_attrs": [],
+    "default_grouping_attrs": [
+        "path"
+    ],
     "default_display_attrs": [
       "path",
       "browse_name",
