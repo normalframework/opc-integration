@@ -82,6 +82,8 @@ const getChildren = async (session, basePath = "", references, parentReference) 
             const point = {
                 uuid: uuidv5(ref.reference.nodeId.displayText(), OCP_POINT_NAMESPACE),
                 layer: "hpl:opc:1",
+                name: ref.reference.displayName.text,
+                parent_name: parentReference.reference.displayName.text,
                 attrs: {
                     path: currentPath,
                     browse_name: ref.reference.browseName.toString(),

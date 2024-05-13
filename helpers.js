@@ -85,6 +85,7 @@ const isInTargetPath = (targetPath, path) => {
 }
 
 const isInTargetPaths = (targetPaths, path) => {
+    if(!targetPaths) return true;
     const paths = targetPaths.split(",");
     return paths.some(p => isInTargetPath(p, path));
 }
