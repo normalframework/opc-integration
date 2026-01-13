@@ -1,12 +1,33 @@
 {
-  "name": "opc",
-  "description": "OPC Driver for Normal Framework",
-  "layer": {
-    "name": "hpl:opc:1",
-    "description": "OPC Protocal Layer",
-    "kind": "LAYER_BASE",
-    "indexed": true,
-    "components": [
+  "name":  "opc",
+  "description":  "OPC Driver for Normal Framework",
+  "options":  [
+    {
+      "name":  "endpoint",
+      "optionType":  "TYPE_STRING",
+      "defaultValue":  {
+        "string":  "opc.tcp://opcuademo.sterfive.com:26543"
+      },
+      "value":  {
+        "string":  ""
+      }
+    },
+    {
+      "name":  "targetPaths",
+      "description":  "Browse paths to target (comma delimited). If empty, will index entire server.",
+      "optionType":  "TYPE_STRING",
+      "defaultValue":  {
+        "string":  "/Objects/DeviceSet/CoffeeMachine"
+      },
+      "value":  {
+        "string":  ""
+      }
+    }
+  ],
+  "layer":  {
+    "name":  "hpl:opc:1",
+    "description":  "OPC Protocal Layer",
+    "components":  [
       "path",
       "browse_name",
       "namespace",
@@ -15,13 +36,26 @@
       "id_string",
       "units_display"
     ],
-    "component_options": ["PATH", "TAG", "TEXT", "TEXT", "TEXT", "TEXT", "TAG"],
-    "component_types": ["PATH", "TAG", "TEXT", "TEXT", "TEXT", "TEXT", "TAG"],
-    "suggested_extraction_attrs": [],
-    "default_grouping_attrs": [
-        "path"
+    "componentOptions":  [
+      "PATH",
+      "TAG",
+      "TEXT",
+      "TEXT",
+      "TEXT",
+      "TEXT",
+      "TAG"
     ],
-    "default_display_attrs": [
+    "componentTypes":  [
+      "PATH",
+      "TAG",
+      "TEXT",
+      "TEXT",
+      "TEXT",
+      "TEXT",
+      "TAG"
+    ],
+    "indexed":  true,
+    "defaultDisplayAttrs":  [
       "path",
       "browse_name",
       "namespace",
@@ -29,21 +63,9 @@
       "identifier",
       "id_string",
       "display"
+    ],
+    "defaultGroupingAttrs":  [
+      "path"
     ]
-  },
-  "options": [
-    {
-      "name": "endpoint",
-      "optionType": 4,
-      "value": { "string": "" },
-      "defaultValue": { "string": "opc.tcp://opcuademo.sterfive.com:26543" }
-    },
-    {
-      "name": "targetPaths",
-      "optionType": 4,
-      "description": "Browse paths to target (comma delimited). If empty, will index entire server.",
-      "defaultValue": { "string": "/Objects/DeviceSet/CoffeeMachine" },
-      "value": { "string": "" }
-    }
-  ]
+  }
 }
