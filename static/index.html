@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OPC UA Browser</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#14171c; --muted:#5c6470; --line:#e3e6ea;
+    --panel:#f7f8fa; --accent:#605AEA; --good:#1a7f4b; --bad:#b4342a; --warn:#946200;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#14171c; --fg:#e8ebef; --muted:#9aa3af; --line:#2a2f37;
+      --panel:#1b1f26; --accent:#8b86f0; --good:#4ac585; --bad:#f08279; --warn:#e0b050;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#14171c; --fg:#e8ebef; --muted:#9aa3af; --line:#2a2f37;
+    --panel:#1b1f26; --accent:#8b86f0; --good:#4ac585; --bad:#f08279; --warn:#e0b050;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:1100px; margin:0 auto; padding:20px 16px 60px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:16px; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  button { font:inherit; padding:7px 13px; border-radius:7px; border:1px solid var(--line);
+           background:var(--bg); color:var(--fg); cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--accent); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  input[type=number] { font:inherit; width:90px; padding:6px 8px; border-radius:7px;
+                       border:1px solid var(--line); background:var(--bg); color:var(--fg); }
+  .pill { font-size:12px; padding:2px 9px; border-radius:99px; border:1px solid var(--line); color:var(--muted); }
+  .pill.ok { color:var(--good); border-color:var(--good); }
+  .pill.err { color:var(--bad); border-color:var(--bad); }
+  code, .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  ul.tree { list-style:none; margin:0; padding-left:16px; }
+  ul.tree.root { padding-left:0; }
+  li.node { margin:1px 0; }
+  .nrow { display:flex; align-items:center; gap:7px; padding:3px 6px; border-radius:6px; }
+  .nrow:hover { background:var(--bg); }
+  .twist { width:16px; text-align:center; cursor:pointer; color:var(--muted); user-select:none; flex:0 0 16px; }
+  .nname { cursor:default; }
+  .nclass { font-size:11px; color:var(--muted); }
+  .val { font-size:12px; color:var(--accent); margin-left:6px; }
+  .val.bad { color:var(--bad); }
+  .log { background:var(--bg); border:1px solid var(--line); border-radius:7px; padding:9px 11px;
+         max-height:190px; overflow:auto; white-space:pre-wrap; }
+  .empty { color:var(--muted); font-style:italic; }
+  label.sel { display:flex; align-items:center; gap:6px; }
+  /* Two fixed columns, not auto-fit: auto-fit reflowed into a ragged last row
+     at some widths. Endpoint spans both because the URL is long. */
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; }
+  .grid .full { grid-column:1 / -1; }
+  .grid label { display:flex; flex-direction:column; gap:5px;
+        font-size:12px; color:var(--muted); min-width:0; }
+  /* Fixed-height caption row: without it, the fields carrying a hint were
+     taller than the ones without, so the inputs sat at different heights. */
+  .grid .cap { display:flex; align-items:baseline; gap:6px; min-height:17px; line-height:17px; }
+  .grid input, .grid select { font:inherit; font-size:13px; height:34px; padding:0 9px;
+        border-radius:7px; border:1px solid var(--line);
+        background:var(--bg); color:var(--fg); width:100%; min-width:0; }
+  .grid input:focus, .grid select:focus { outline:2px solid var(--accent); outline-offset:-1px; }
+  @media (max-width:560px) { .grid { grid-template-columns:1fr; } }
+  .hint { font-size:11px; color:var(--muted); font-weight:normal; }
+
+  dialog#insp { border:1px solid var(--line); border-radius:12px; padding:0;
+        background:var(--panel); color:var(--fg); width:min(760px,94vw); max-height:88vh; }
+  dialog#insp::backdrop { background:rgba(0,0,0,.45); }
+  .ihead { display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+        padding:14px 16px; border-bottom:1px solid var(--line); position:sticky; top:0;
+        background:var(--panel); border-radius:12px 12px 0 0; }
+  .ihead h2 { margin:0; font-size:16px; }
+  .ihead .nid { font-size:11px; color:var(--muted); word-break:break-all; }
+  .ibody { padding:14px 16px; overflow:auto; max-height:calc(88vh - 116px); }
+  .tabs { display:flex; gap:6px; padding:0 16px; border-bottom:1px solid var(--line); background:var(--panel); }
+  .tabs button { border:none; border-bottom:2px solid transparent; background:none; border-radius:0;
+        padding:8px 10px; color:var(--muted); }
+  .tabs button[aria-selected="true"] { color:var(--fg); border-bottom-color:var(--accent); }
+  .sect { margin:0 0 16px; }
+  .sect h3 { margin:0 0 7px; font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+  dl.kv { display:grid; grid-template-columns:auto 1fr; gap:5px 14px; margin:0; }
+  dl.kv dt { color:var(--muted); font-size:12px; }
+  dl.kv dd { margin:0; font-size:13px; word-break:break-word; }
+  .chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .chip { font-size:11px; padding:2px 8px; border-radius:99px; border:1px solid var(--line); color:var(--muted); }
+  .chip.on { color:var(--accent); border-color:var(--accent); }
+  table.tbl { border-collapse:collapse; width:100%; font-size:12px; }
+  table.tbl th, table.tbl td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); }
+  table.tbl th { color:var(--muted); font-weight:600; position:sticky; top:0; background:var(--panel); }
+  table.tbl td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .histwrap { max-height:320px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
+  .ibtn { padding:1px 7px; font-size:11px; }
+  .statbad { color:var(--bad); }
+
+  /* Chart roles. Validated against this page's own surfaces (#ffffff /
+     #14171c), not the reference ones: all six checks pass in both modes. */
+  .viz { --series-1:#2a78d6; --status-critical:#d03b3b;
+         --grid:#e1e0d9; --axis:#c3c2b7; --ink-muted:#898781; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .viz { --series-1:#3987e5; --status-critical:#d03b3b;
+         --grid:#2c2c2a; --axis:#383835; --ink-muted:#898781; }
+  }
+  :root[data-theme="dark"] .viz { --series-1:#3987e5; --status-critical:#d03b3b;
+         --grid:#2c2c2a; --axis:#383835; --ink-muted:#898781; }
+  .viz { position:relative; }
+  .viz svg { display:block; width:100%; height:auto; }
+  .viz .gridline { stroke:var(--grid); stroke-width:1; }
+  .viz .axisline { stroke:var(--axis); stroke-width:1; }
+  .viz .serieline { fill:none; stroke:var(--series-1); stroke-width:2;
+        stroke-linejoin:round; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+  .viz .badpt { fill:var(--status-critical); stroke:var(--bg); stroke-width:2; }
+  .viz .tick { fill:var(--ink-muted); font-size:10px; font-variant-numeric:tabular-nums; }
+  .viz .extreme { fill:var(--fg); font-size:10px; font-variant-numeric:tabular-nums; }
+  .viz .crosshair { stroke:var(--axis); stroke-width:1; pointer-events:none; }
+  .viz .cursordot { fill:var(--series-1); stroke:var(--bg); stroke-width:2; pointer-events:none; }
+  .viztip { position:absolute; pointer-events:none; background:var(--panel);
+        border:1px solid var(--line); border-radius:7px; padding:6px 9px;
+        font-size:12px; white-space:nowrap; transform:translate(-50%,-115%);
+        box-shadow:0 2px 10px rgba(0,0,0,.18); opacity:0; transition:opacity .08s; }
+  .viztip .tv { font-weight:600; font-variant-numeric:tabular-nums; }
+  .viztip .tl { color:var(--muted); font-size:11px; }
+  .viztip .tbad { color:var(--bad); font-size:11px; }
+
+  details.card > summary { cursor:pointer; list-style:none; display:flex;
+        align-items:center; gap:10px; flex-wrap:wrap; }
+  details.card > summary::-webkit-details-marker { display:none; }
+  details.card > summary::before { content:"\25B8"; color:var(--muted); font-size:11px; }
+  details.card[open] > summary::before { content:"\25BE"; }
+  .sumtitle { font-weight:600; }
+  .sumwhere { color:var(--muted); font-size:12px; flex:1 1 auto;
+        overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>OPC UA Browser</h1>
+  <p class="sub">Browse the server, pick what to import, and set how often it should trend.</p>
+
+  <details class="card" id="connCard">
+    <summary>
+      <span class="sumtitle">Connection</span>
+      <span id="connWhere" class="mono sumwhere"></span>
+      <span id="connPill" class="pill">not checked</span>
+    </summary>
+    <div class="row" style="margin-top:10px">
+      <button id="btnTest">Test connection</button>
+      <span class="hint">Setup only — the tree below is the main event.</span>
+    </div>
+
+    <div class="grid" style="margin-top:12px">
+      <label class="full">
+        <span class="cap">Endpoint</span>
+        <input type="text" id="cEndpoint" placeholder="opc.tcp://host:4840/path" />
+      </label>
+      <label>
+        <span class="cap">Username <span class="hint">blank = anonymous</span></span>
+        <input type="text" id="cUsername" autocomplete="off" />
+      </label>
+      <label>
+        <span class="cap">Password <span class="hint" id="pwHint">blank = unchanged</span></span>
+        <input type="password" id="cPassword" autocomplete="new-password" placeholder="••••••••" />
+      </label>
+      <label>
+        <span class="cap">Security mode</span>
+        <select id="cMode">
+          <option>None</option><option>Sign</option><option>SignAndEncrypt</option>
+        </select>
+      </label>
+      <label>
+        <span class="cap">Security policy</span>
+        <select id="cPolicy">
+          <option>None</option><option>Basic256Sha256</option>
+          <option>Basic256</option><option>Basic128Rsa15</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <button id="btnSaveConn" class="primary">Save connection</button>
+      <span class="hint">Stored in the app configuration; the password is encrypted by NF and never sent back to this page.</span>
+    </div>
+    <div id="connDetail" class="mono" style="color:var(--muted);margin-top:8px"></div>
+  </details>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <strong>Server tree</strong>
+      <div class="row">
+        <button id="btnRoot">Load root</button>
+        <button id="btnClear">Clear selection</button>
+      </div>
+    </div>
+    <div id="tree" style="margin-top:10px"><span class="empty">Click “Load root” to start browsing.</span></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <strong>Selected:</strong> <span id="selCount">0</span>
+      <label class="sel">Trend period <input type="number" id="period" min="0" step="30" value="300" /> s</label>
+      <button id="btnSave">Save selection</button>
+      <button id="btnImport" class="primary">Import selected</button>
+      <button id="btnTrend">Run trend now</button>
+    </div>
+    <div id="selList" class="mono" style="margin-top:8px;color:var(--muted)"></div>
+  </div>
+
+  <div class="card">
+    <strong>Activity</strong>
+    <div id="log" class="log mono" style="margin-top:8px"><span class="empty">Nothing yet.</span></div>
+  </div>
+</div>
+
+<dialog id="insp">
+  <div class="ihead">
+    <div>
+      <h2 id="iTitle">Node</h2>
+      <div class="nid mono" id="iNodeId"></div>
+    </div>
+    <button id="iClose">Close</button>
+  </div>
+  <div class="tabs">
+    <button id="tabDetails" aria-selected="true">Details</button>
+    <button id="tabHistory" aria-selected="false" disabled title="This node does not expose history">History</button>
+  </div>
+  <div class="ibody">
+    <div id="paneDetails"></div>
+    <div id="paneHistory" hidden></div>
+  </div>
+</dialog>
+
+<script src="api.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const selected = new Map();   // nodeId -> {nodeId, name, path, importable}
+  let logLines = [];
+
+  function log(msg) {
+    logLines.unshift(new Date().toLocaleTimeString() + "  " + msg);
+    logLines = logLines.slice(0, 200);
+    $("log").textContent = logLines.join("\n");
+  }
+  function fail(e) { log("ERROR: " + (e && e.message ? e.message : e)); }
+
+  function renderSel() {
+    $("selCount").textContent = String(selected.size);
+    $("selList").textContent = selected.size
+      ? [...selected.values()].map((s) => s.path).join("\n")
+      : "nothing selected";
+  }
+
+  function makeNode(child, parentPath) {
+    const li = document.createElement("li");
+    li.className = "node";
+    const row = document.createElement("div");
+    row.className = "nrow";
+
+    const path = parentPath ? parentPath + "/" + child.displayName : child.displayName;
+
+    const twist = document.createElement("span");
+    twist.className = "twist";
+    twist.textContent = child.expandable ? "▸" : "·";
+    row.appendChild(twist);
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.title = "Include this node (and everything under it) in the import";
+    cb.onchange = () => {
+      if (cb.checked) selected.set(child.nodeId, { nodeId: child.nodeId, name: child.displayName, path, importable: child.importable });
+      else selected.delete(child.nodeId);
+      renderSel();
+    };
+    row.appendChild(cb);
+
+    const nm = document.createElement("span");
+    nm.className = "nname";
+    nm.textContent = child.displayName;
+    row.appendChild(nm);
+
+    const cls = document.createElement("span");
+    cls.className = "nclass";
+    cls.textContent = child.nodeClass;
+    row.appendChild(cls);
+
+    const insp = document.createElement("button");
+    insp.textContent = "inspect";
+    insp.className = "ibtn";
+    insp.title = "Show every OPC attribute for this node";
+    insp.onclick = () => openInspector(child.nodeId, child.displayName);
+    row.appendChild(insp);
+
+    li.appendChild(row);
+
+    let kids = null, loaded = false;
+    twist.onclick = async () => {
+      if (!child.expandable) return;
+      if (loaded) { kids.style.display = kids.style.display === "none" ? "" : "none";
+                    twist.textContent = kids.style.display === "none" ? "▸" : "▾"; return; }
+      twist.textContent = "…";
+      try {
+        const res = await NF.opc.browse(child.nodeId);
+        kids = document.createElement("ul");
+        kids.className = "tree";
+        (res.children || []).forEach((c) => kids.appendChild(makeNode(c, path)));
+        if (!res.children || !res.children.length) {
+          const e = document.createElement("li"); e.className = "empty"; e.textContent = "(no children)";
+          kids.appendChild(e);
+        }
+        li.appendChild(kids);
+        loaded = true; twist.textContent = "▾";
+        log("browsed " + path + " → " + (res.children || []).length + " child(ren)");
+      } catch (e) { twist.textContent = "▸"; fail(e); }
+    };
+    return li;
+  }
+
+
+  // ---- inspector -------------------------------------------------------
+  const dlg = $("insp");
+  let inspNode = null, inspSupportsHistory = false, inspUnits = "";
+
+  const esc = (v) => (v === null || v === undefined || v === "" ? "—" : String(v));
+  const el = (tag, cls, text) => { const n = document.createElement(tag);
+    if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
+
+  function kv(pairs) {
+    const dl = el("dl", "kv");
+    pairs.forEach(([k, v, cls]) => {
+      dl.appendChild(el("dt", null, k));
+      const dd = el("dd", cls || null, esc(v));
+      dl.appendChild(dd);
+    });
+    return dl;
+  }
+  function section(title, node) {
+    const d = el("div", "sect");
+    d.appendChild(el("h3", null, title));
+    d.appendChild(node);
+    return d;
+  }
+  const fmtTs = (t) => (t ? new Date(t).toLocaleString() : "—");
+
+  function showTab(which) {
+    const det = which === "details";
+    $("tabDetails").setAttribute("aria-selected", String(det));
+    $("tabHistory").setAttribute("aria-selected", String(!det));
+    $("paneDetails").hidden = !det;
+    $("paneHistory").hidden = det;
+  }
+
+  async function openInspector(nodeId, name) {
+    inspNode = nodeId;
+    $("iTitle").textContent = name || nodeId;
+    $("iNodeId").textContent = nodeId;
+    $("paneDetails").innerHTML = '<span class="empty">Reading attributes…</span>';
+    $("paneHistory").innerHTML = "";
+    $("tabHistory").disabled = true;
+    showTab("details");
+    if (!dlg.open) dlg.showModal();
+
+    try {
+      const d = await NF.opc.inspect(nodeId);
+      const pane = document.createDocumentFragment();
+
+      pane.appendChild(section("Identity", kv([
+        ["Node class", d.identity.nodeClass],
+        ["Browse name", d.identity.browseName],
+        ["Display name", d.identity.displayName],
+        ["Description", d.identity.description],
+      ])));
+
+      const bad = d.value.status && !/^Good/.test(d.value.status);
+      pane.appendChild(section("Value", kv([
+        ["Value", d.value.value],
+        ["Status", d.value.status, bad ? "statbad" : null],
+        ["Source time", fmtTs(d.value.sourceTimestamp)],
+        ["Server time", fmtTs(d.value.serverTimestamp)],
+      ])));
+
+      pane.appendChild(section("Data type", kv([
+        ["Type", d.dataType.name],
+        ["Type node", d.dataType.nodeId],
+        ["Value rank", d.dataType.valueRank],
+        ["Array dimensions", d.dataType.arrayDimensions],
+      ])));
+
+      const acc = el("div");
+      const chips = el("div", "chips");
+      ["CurrentRead","CurrentWrite","HistoryRead","HistoryWrite"].forEach((f) => {
+        const c = el("span", "chip" + (d.access.flags.includes(f) ? " on" : ""), f);
+        chips.appendChild(c);
+      });
+      acc.appendChild(chips);
+      acc.appendChild(kv([
+        ["Historizing", d.access.historizing ? "yes" : "no"],
+        ["Min sampling interval", d.access.minimumSamplingInterval],
+      ]));
+      pane.appendChild(section("Access", acc));
+
+      if (d.properties && d.properties.length) {
+        const t = el("table", "tbl");
+        t.innerHTML = "<thead><tr><th>Property</th><th>Value</th><th>HDA attr</th><th>Status</th></tr></thead>";
+        const tb = el("tbody");
+        d.properties.forEach((pr) => {
+          const tr = el("tr");
+          tr.appendChild(el("td", null, pr.name));
+          tr.appendChild(el("td", "mono", esc(pr.value)));
+          // Show the decoded classic-OPC attribute id next to the vendor's label.
+          const a = el("td", "mono");
+          a.textContent = pr.attrId === null || pr.attrId === undefined
+            ? "—"
+            : "0x" + pr.attrId.toString(16).padStart(2, "0") +
+              (pr.attrStandardName ? " " + pr.attrStandardName : "");
+          a.style.color = "var(--muted)";
+          tr.appendChild(a);
+          tr.appendChild(el("td", /^Good/.test(pr.status) ? null : "statbad", pr.status));
+          tb.appendChild(tr);
+        });
+        t.appendChild(tb);
+        pane.appendChild(section("Properties", t));
+      }
+
+      pane.appendChild(section("In Normal Framework", kv(
+        d.nf.imported
+          ? [["Imported", "yes"], ["Point name", d.nf.name],
+             ["Trend period", d.nf.period || "not trended"], ["Layer", d.nf.layer],
+             ["UUID", d.nf.uuid]]
+          : [["Imported", "no — select it in the tree and Import"]]
+      )));
+
+      $("paneDetails").innerHTML = "";
+      $("paneDetails").appendChild(pane);
+
+      // Eng Units off the HDA attributes labels the axis and the tooltip.
+      const eu = (d.properties || []).find((pr) => pr.attrId === 0x03);
+      inspUnits = (eu && /^Good/.test(eu.status) && eu.value) ? String(eu.value) : "";
+      inspSupportsHistory = !!d.access.supportsHistory;
+      $("tabHistory").disabled = !inspSupportsHistory;
+      $("tabHistory").title = inspSupportsHistory
+        ? "Read stored history from the server"
+        : "This node does not expose history";
+      if (inspSupportsHistory) renderHistoryPane();
+    } catch (e) {
+      $("paneDetails").innerHTML = "";
+      $("paneDetails").appendChild(el("div", "statbad", e.message));
+    }
+  }
+
+
+  // ---- history plot ----------------------------------------------------
+  // Single series over time -> line. One series, so no legend box: the panel
+  // heading names it. Extremes are direct-labelled; every other value is
+  // reachable by crosshair or the table, never printed on the mark.
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const sv = (tag, attrs) => {
+    const n = document.createElementNS(SVGNS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  };
+
+  function niceTicks(lo, hi, count) {
+    if (hi === lo) { hi = lo + 1; }
+    const raw = (hi - lo) / count;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((c) => c >= raw) || mag * 10;
+    const first = Math.ceil(lo / step) * step;
+    const out = [];
+    for (let v = first; v <= hi + step * 1e-9; v += step) out.push(v);
+    return out;
+  }
+  const fmtNum = (n) => {
+    const a = Math.abs(n);
+    if (a >= 1e6 || (a > 0 && a < 1e-3)) return n.toExponential(2);
+    return Number(n.toFixed(a >= 100 ? 0 : a >= 1 ? 2 : 4)).toLocaleString();
+  };
+
+  function buildChart(values, units) {
+    const host = el("div", "viz");
+    const pts = values.map((v) => ({
+      t: Date.parse(v.ts),
+      y: Number(v.value),
+      bad: !/^Good/.test(v.status || ""),
+      status: v.status,
+    })).filter((p) => Number.isFinite(p.t) && Number.isFinite(p.y))
+      .sort((a, b) => a.t - b.t);
+
+    if (pts.length < 2) {
+      host.appendChild(el("div", "empty", "Not enough numeric samples to plot."));
+      return host;
+    }
+
+    const W = 720, H = 250, M = { t: 16, r: 18, b: 30, l: 62 };
+    const iw = W - M.l - M.r, ih = H - M.t - M.b;
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+    let lo = Math.min(...pts.map((p) => p.y)), hi = Math.max(...pts.map((p) => p.y));
+    if (lo === hi) { lo -= 1; hi += 1; }
+    const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+    const X = (t) => M.l + (t1 === t0 ? iw / 2 : ((t - t0) / (t1 - t0)) * iw);
+    const Y = (y) => M.t + ih - ((y - lo) / (hi - lo)) * ih;
+
+    const svg = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": `History plot, ${pts.length} samples` });
+
+    // recessive solid hairline grid
+    niceTicks(lo, hi, 4).forEach((v) => {
+      svg.appendChild(sv("line", { class: "gridline", x1: M.l, x2: M.l + iw, y1: Y(v), y2: Y(v) }));
+      const lbl = sv("text", { class: "tick", x: M.l - 8, y: Y(v) + 3, "text-anchor": "end" });
+      lbl.textContent = fmtNum(v);
+      svg.appendChild(lbl);
+    });
+    svg.appendChild(sv("line", { class: "axisline", x1: M.l, x2: M.l + iw, y1: M.t + ih, y2: M.t + ih }));
+
+    const nT = Math.min(5, pts.length);
+    for (let i = 0; i < nT; i++) {
+      const t = t0 + ((t1 - t0) * i) / (nT - 1);
+      const lbl = sv("text", { class: "tick", x: X(t), y: M.t + ih + 16, "text-anchor": i === 0 ? "start" : i === nT - 1 ? "end" : "middle" });
+      const d = new Date(t);
+      lbl.textContent = (t1 - t0) > 36e5 * 26
+        ? d.toLocaleDateString([], { month: "short", day: "numeric" })
+        : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      svg.appendChild(lbl);
+    }
+    if (units) {
+      const u = sv("text", { class: "tick", x: M.l - 8, y: M.t - 5, "text-anchor": "end" });
+      u.textContent = units;
+      svg.appendChild(u);
+    }
+
+    svg.appendChild(sv("path", { class: "serieline",
+      d: pts.map((p, i) => (i ? "L" : "M") + X(p.t).toFixed(1) + " " + Y(p.y).toFixed(1)).join(" ") }));
+
+    // Non-Good samples get a status marker with a surface ring. Colour is not
+    // doing this alone: they are also in the tooltip and the table.
+    pts.forEach((p) => {
+      if (p.bad) svg.appendChild(sv("circle", { class: "badpt", cx: X(p.t), cy: Y(p.y), r: 4 }));
+    });
+
+    // selective direct labels: the two extremes only
+    const pMin = pts.reduce((a, b) => (b.y < a.y ? b : a));
+    const pMax = pts.reduce((a, b) => (b.y > a.y ? b : a));
+    [[pMax, -7], [pMin, 14]].forEach(([p, dy]) => {
+      const lb = sv("text", { class: "extreme", x: X(p.t), y: Y(p.y) + dy, "text-anchor": "middle" });
+      lb.textContent = fmtNum(p.y);
+      svg.appendChild(lb);
+    });
+
+    const cross = sv("line", { class: "crosshair", y1: M.t, y2: M.t + ih, x1: 0, x2: 0, opacity: 0 });
+    const dot = sv("circle", { class: "cursordot", r: 4, cx: 0, cy: 0, opacity: 0 });
+    svg.appendChild(cross); svg.appendChild(dot);
+    const hit = sv("rect", { x: M.l, y: M.t, width: iw, height: ih, fill: "transparent" });
+    svg.appendChild(hit);
+    host.appendChild(svg);
+
+    const tip = el("div", "viztip");
+    host.appendChild(tip);
+
+    // The crosshair finds the X, so the reader aims at a time, not a 2px line.
+    const move = (ev) => {
+      const r = svg.getBoundingClientRect();
+      const sx = ((ev.clientX - r.left) / r.width) * W;
+      const t = t0 + ((sx - M.l) / iw) * (t1 - t0);
+      let best = 0, bd = Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const d = Math.abs(pts[i].t - t);
+        if (d < bd) { bd = d; best = i; }
+      }
+      const p = pts[best];
+      const px = X(p.t), py = Y(p.y);
+      cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.setAttribute("opacity", 1);
+      dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.setAttribute("opacity", 1);
+      tip.textContent = "";
+      const v = el("div", "tv", fmtNum(p.y) + (units ? " " + units : ""));
+      const l = el("div", "tl", fmtTs(new Date(p.t).toISOString()));
+      tip.appendChild(v); tip.appendChild(l);
+      if (p.bad) tip.appendChild(el("div", "tbad", p.status));
+      tip.style.left = (px / W) * r.width + "px";
+      tip.style.top = (py / H) * r.height + "px";
+      tip.style.opacity = 1;
+    };
+    hit.addEventListener("pointermove", move);
+    hit.addEventListener("pointerleave", () => {
+      tip.style.opacity = 0; cross.setAttribute("opacity", 0); dot.setAttribute("opacity", 0);
+    });
+    return host;
+  }
+
+  function renderHistoryPane() {
+    const wrap = el("div");
+
+    // How far back this node's archive actually goes. Two single-sample
+    // HistoryReads, so it costs nothing and stops you guessing at ranges.
+    const ext = el("div", "sect");
+    ext.appendChild(el("h3", null, "Available range"));
+    const extBody = el("div");
+    extBody.innerHTML = '<span class="empty">Checking…</span>';
+    ext.appendChild(extBody);
+    wrap.appendChild(ext);
+
+    const bar = el("div", "row");
+    bar.appendChild(el("span", "hint", "Read:"));
+    [["15 min", 15], ["1 hour", 60], ["6 hours", 360], ["24 hours", 1440], ["7 days", 10080]]
+      .forEach(([label, mins]) => {
+        const b = el("button", "ibtn", label);
+        b.onclick = () => loadHistory(mins, out);
+        bar.appendChild(b);
+      });
+    wrap.appendChild(bar);
+    const out = el("div");
+    out.style.marginTop = "10px";
+    out.innerHTML = '<span class="empty">Pick a range to read stored history.</span>';
+    wrap.appendChild(out);
+    $("paneHistory").innerHTML = "";
+    $("paneHistory").appendChild(wrap);
+
+    const forNode = inspNode;
+    NF.opc.extent(inspNode).then((x) => {
+      if (forNode !== inspNode) return;   // dialog moved on while we waited
+      extBody.innerHTML = "";
+      if (x.explain) {
+        extBody.appendChild(el("div", "statbad", x.explain));
+      } else if (x.oldest && x.oldest.ts && x.newest && x.newest.ts) {
+        extBody.appendChild(kv([
+          ["Oldest sample", fmtTs(x.oldest.ts)],
+          ["Newest sample", fmtTs(x.newest.ts)],
+          ["Span", x.spanDays + " days"],
+        ]));
+        if (x.boundedReadHonoured === false) {
+          extBody.appendChild(el("div", "hint",
+            "Server ignored numValuesPerNode — wide ranges may return a lot."));
+        }
+      } else {
+        const why = (x.oldest && (x.oldest.error || (x.oldest.empty && "archive is empty"))) || "unknown";
+        extBody.appendChild(el("div", "empty", "Could not determine range: " + why));
+      }
+    }).catch((e) => {
+      if (forNode !== inspNode) return;
+      extBody.innerHTML = "";
+      extBody.appendChild(el("div", "statbad", e.message));
+    });
+  }
+
+  async function loadHistory(mins, out) {
+    const to = new Date();
+    const from = new Date(to.getTime() - mins * 60000);
+    out.innerHTML = '<span class="empty">Reading history…</span>';
+    try {
+      const h = await NF.opc.history(inspNode, from.toISOString(), to.toISOString(), 2000);
+      out.innerHTML = "";
+      if (!h.supported) {
+        if (h.explain) {
+          out.appendChild(el("div", "statbad", h.explain));
+          out.appendChild(el("div", "hint", h.status));
+        } else {
+          out.appendChild(el("div", "statbad", "Server refused HistoryRead: " + h.status));
+        }
+        return;
+      }
+      if (!h.count) {
+        out.appendChild(el("div", "empty",
+          "No stored values in that window (the node allows history but has none here)."));
+        return;
+      }
+      const nums = h.values.map((v) => Number(v.value)).filter((n) => Number.isFinite(n));
+      if (nums.length) {
+        const mn = Math.min(...nums), mx = Math.max(...nums);
+        const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+        out.appendChild(kv([
+          ["Samples", h.count + (h.truncated ? " (truncated)" : "")],
+          ["Min", mn], ["Max", mx], ["Mean", avg.toFixed(4)],
+          ["Span", fmtTs(h.values[0].ts) + "  →  " + fmtTs(h.values[h.values.length - 1].ts)],
+        ]));
+      } else {
+        out.appendChild(kv([["Samples", h.count]]));
+      }
+      out.appendChild(buildChart(h.values, inspUnits));
+
+      // The plot is the default view, but a tooltip must never be the only way
+      // to read a value, so the table stays one click away.
+      const w = el("div", "histwrap");
+      w.hidden = true;
+      const t = el("table", "tbl");
+      t.innerHTML = "<thead><tr><th>Timestamp</th><th>Value</th><th>Status</th></tr></thead>";
+      const tb = el("tbody");
+      h.values.forEach((v) => {
+        const tr = el("tr");
+        tr.appendChild(el("td", null, fmtTs(v.ts)));
+        tr.appendChild(el("td", "num mono", esc(v.value)));
+        tr.appendChild(el("td", /^Good/.test(v.status) ? null : "statbad", v.status));
+        tb.appendChild(tr);
+      });
+      t.appendChild(tb); w.appendChild(t);
+      const toggle = el("button", "ibtn", "Show data table");
+      toggle.style.marginTop = "10px";
+      toggle.onclick = () => {
+        w.hidden = !w.hidden;
+        toggle.textContent = w.hidden ? "Show data table" : "Hide data table";
+      };
+      out.appendChild(toggle);
+      out.appendChild(w);
+      log("history: " + h.count + " sample(s) for " + inspNode);
+    } catch (e) {
+      out.innerHTML = "";
+      out.appendChild(el("div", "statbad", e.message));
+    }
+  }
+
+  $("iClose").onclick = () => dlg.close();
+  $("tabDetails").onclick = () => showTab("details");
+  $("tabHistory").onclick = () => { if (!$("tabHistory").disabled) showTab("history"); };
+
+  $("btnRoot").onclick = async () => {
+    $("btnRoot").disabled = true;
+    try {
+      const res = await NF.opc.browse("RootFolder");
+      const ul = document.createElement("ul");
+      ul.className = "tree root";
+      (res.children || []).forEach((c) => ul.appendChild(makeNode(c, "")));
+      $("tree").innerHTML = ""; $("tree").appendChild(ul);
+      log("root loaded (" + (res.children || []).length + " nodes)");
+    } catch (e) { fail(e); } finally { $("btnRoot").disabled = false; }
+  };
+
+  $("btnTest").onclick = async () => {
+    $("btnTest").disabled = true;
+    $("connPill").className = "pill"; $("connPill").textContent = "checking…";
+    try {
+      const r = await NF.opc.testConn();
+      $("connPill").className = "pill ok"; $("connPill").textContent = "connected";
+      $("connDetail").textContent = "namespaces: " + (r.namespaces || []).join("  |  ");
+      log("connected to " + r.endpoint + (r.anonymous ? " (anonymous)" : " (authenticated)"));
+    } catch (e) {
+      $("connPill").className = "pill err"; $("connPill").textContent = "failed";
+      $("connDetail").textContent = e.message; fail(e);
+    } finally { $("btnTest").disabled = false; }
+  };
+
+  $("btnSaveConn").onclick = async () => {
+    const btn = $("btnSaveConn"); btn.disabled = true;
+    try {
+      const r = await NF.opc.saveConnection({
+        endpoint: $("cEndpoint").value.trim(),
+        username: $("cUsername").value.trim(),
+        password: $("cPassword").value,          // blank => left unchanged
+        securityMode: $("cMode").value,
+        securityPolicy: $("cPolicy").value,
+      });
+      $("cPassword").value = "";
+      $("pwHint").textContent = r.passwordChanged ? "saved — blank = unchanged" : "blank = unchanged";
+      $("connWhere").textContent = $("cEndpoint").value || "(no endpoint configured)";
+      log("connection saved (" + r.saved.join(", ") + ") — the app restarts, give it a few seconds before testing");
+      $("connPill").className = "pill"; $("connPill").textContent = "not checked";
+    } catch (e) { fail(e); } finally { btn.disabled = false; }
+  };
+
+  $("btnClear").onclick = () => { selected.clear(); renderSel();
+    document.querySelectorAll('#tree input[type=checkbox]').forEach((c) => (c.checked = false)); };
+
+  $("btnSave").onclick = async () => {
+    try {
+      await NF.opc.saveConfig({ selectedNodes: [...selected.values()], trendPeriod: String($("period").value) });
+      log("saved " + selected.size + " selection(s), period " + $("period").value + "s");
+    } catch (e) { fail(e); }
+  };
+
+  const streamEvents = (evs) => { if (evs && evs[0]) log(evs[0].message); };
+
+  $("btnImport").onclick = async () => {
+    if (!selected.size) return log("nothing selected");
+    $("btnImport").disabled = true;
+    try {
+      const r = await NF.opc.importSelected(
+        { selectedNodes: [...selected.values()], trendPeriod: String($("period").value) }, streamEvents);
+      log("import finished: " + r.imported + " of " + r.found + " point(s), period " + r.trendPeriod + "s");
+    } catch (e) { fail(e); } finally { $("btnImport").disabled = false; }
+  };
+
+  $("btnTrend").onclick = async () => {
+    $("btnTrend").disabled = true;
+    try { await NF.opc.trendNow(streamEvents); log("trend run finished"); }
+    catch (e) { fail(e); } finally { $("btnTrend").disabled = false; }
+  };
+
+  (async function init() {
+    try {
+      const r = await NF.opc.loadConfig();
+      $("connWhere").textContent = r.connection.endpoint || "(no endpoint configured)";
+      $("cEndpoint").value = r.connection.endpoint || "";
+      $("cUsername").value = r.connection.username || "";
+      $("cMode").value = r.connection.securityMode || "None";
+      $("cPolicy").value = r.connection.securityPolicy || "None";
+      $("pwHint").textContent = r.connection.hasPassword ? "set — blank = unchanged" : "not set";
+      if (r.config.trendPeriod) $("period").value = r.config.trendPeriod;
+      (r.config.selectedNodes || []).forEach((s) => selected.set(s.nodeId, s));
+      renderSel();
+      if (!r.connection.endpoint) $("connCard").open = true;
+      log("config loaded" + (r.connection.hasPassword ? " (password is set)" : " (anonymous)"));
+    } catch (e) { fail(e); }
+  })();
+})();
+</script>
+</body>
+</html>

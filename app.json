@@ -1,32 +1,52 @@
 {
-  "name":  "opc",
-  "description":  "OPC Driver for Normal Framework",
+  "name":  "opc-dev",
+  "description":  "OPC UA driver: UI-driven browse, selective import, and trending decoupled from discovery.",
   "options":  [
     {
       "name":  "endpoint",
+      "description":  "OPC UA endpoint URL",
       "optionType":  "TYPE_STRING",
       "defaultValue":  {
-        "string":  "opc.tcp://opcuademo.sterfive.com:26543"
-      },
-      "value":  {
         "string":  ""
       }
     },
     {
-      "name":  "targetPaths",
-      "description":  "Browse paths to target (comma delimited). If empty, will index entire server.",
+      "name":  "username",
+      "description":  "Leave blank to connect anonymously",
       "optionType":  "TYPE_STRING",
       "defaultValue":  {
-        "string":  "/Objects/DeviceSet/CoffeeMachine"
-      },
-      "value":  {
         "string":  ""
+      }
+    },
+    {
+      "name":  "password",
+      "description":  "Stored encrypted by NF",
+      "optionType":  "TYPE_STRING",
+      "defaultValue":  {
+        "string":  ""
+      },
+      "secret":  true
+    },
+    {
+      "name":  "securityMode",
+      "description":  "None | Sign | SignAndEncrypt",
+      "optionType":  "TYPE_STRING",
+      "defaultValue":  {
+        "string":  "None"
+      }
+    },
+    {
+      "name":  "securityPolicy",
+      "description":  "None | Basic256Sha256 | Basic256 | Basic128Rsa15",
+      "optionType":  "TYPE_STRING",
+      "defaultValue":  {
+        "string":  "None"
       }
     }
   ],
   "layer":  {
     "name":  "hpl:opc:1",
-    "description":  "OPC Protocal Layer",
+    "description":  "OPC UA Layer",
     "components":  [
       "path",
       "browse_name",
@@ -58,14 +78,11 @@
     "defaultDisplayAttrs":  [
       "path",
       "browse_name",
-      "namespace",
-      "identifier_type",
-      "identifier",
-      "id_string",
-      "display"
+      "id_string"
     ],
     "defaultGroupingAttrs":  [
       "path"
     ]
-  }
+  },
+  "minNfVersion":  "3.9.8-4"
 }

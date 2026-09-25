@@ -71,8 +71,11 @@ class OPCTestServer:
         # Status variables
         self.coffee_temp = await parent.add_variable(idx, "Temperature", 85.5)
         await self.coffee_temp.set_writable()
-        await self.coffee_temp.set_attr(ua.AttributeIds.Description, 
-            ua.LocalizedText("Coffee temperature in Celsius"))
+        # set_attr() was removed from asyncua's Node; write_attribute is the
+        # current spelling and wants a DataValue.
+        await self.coffee_temp.write_attribute(
+            ua.AttributeIds.Description,
+            ua.DataValue(ua.Variant(ua.LocalizedText("Coffee temperature in Celsius"))))
         
         self.coffee_level = await parent.add_variable(idx, "WaterLevel", 75.0)
         await self.coffee_level.set_writable()
