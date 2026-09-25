@@ -1,0 +1,20 @@
+{
+  "name":  "trend-data",
+  "entryPoint":  "/hooks/trend-data.js",
+  "points":  {
+    "layer":  "hpl:opc:1",
+    "query":  {
+      "field":  {
+        "property":  "period",
+        "numeric":  {
+          "minValue":  1,
+          "maxInfinity":  true
+        }
+      }
+    },
+    "groups":  {},
+    "labelAttribute":  "name"
+  },
+  "mode":  "MODE_ON_REQUEST",
+  "invokeTimeout":  "900s"
+}
