@@ -11,4 +11,8 @@ node_modules
 
 # Runtime state: UI selections and the browse cache. Not source.
 state/
+
+# Editor config
+.vscode/
+.idea/
 .DS_Store
