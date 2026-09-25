@@ -1,3 +1,14 @@
 /dist
 *.js.map
 node_modules
+
+# npm/XDG caches. install_deps runs with HOME set to the app root, so npm
+# writes its cache inside the app rather than the user's home directory.
+# These were committed before this rule existed, and .gitignore has no effect
+# on already-tracked files, so they also had to be `git rm -r --cached`.
+.npm/
+.config/
+
+# Runtime state: UI selections and the browse cache. Not source.
+state/
+.DS_Store
