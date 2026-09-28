@@ -48,6 +48,8 @@ Install the app from this repository's GitHub URL, then open **Configure**.
 Credentials belong here, not in source. You can also edit them from the app's
 own UI, which writes to the same config.
 
+![Connection panel](images/connection.jpg)
+
 ## Browsing and importing
 
 Open the app's UI (**View** on the app tile). The **Connection** panel is
@@ -59,10 +61,14 @@ collapsed by default; expand it to set the endpoint or hit **Test connection**.
 2. Tick what you want. A selection can be a whole subtree or a single node.
 3. Set a **trend period** (seconds) and **Import selected**.
 
+![Server tree](images/server-tree.jpg)
+
 Every node has an **inspect** button showing all of its OPC attributes: node
 class, data type, value with its status and both timestamps, the decoded
 `AccessLevel` bits, `Historizing`, and its properties. If the node exposes
 history, the inspector also plots it and reports how far back the archive goes.
+
+![Node inspector](images/inspector.jpg)
 
 ## Trending and data quality
 
